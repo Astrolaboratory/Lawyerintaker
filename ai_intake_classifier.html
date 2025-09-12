@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Legal Intake Classifier</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            padding: 40px;
+        }
+
+        .input-section {
+            margin-bottom: 30px;
+        }
+
+        .input-section h2 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.5em;
+        }
+
+        #intakeText {
+            width: 100%;
+            min-height: 200px;
+            padding: 20px;
+            border: 2px solid #e1e5e9;
+            border-radius: 10px;
+            font-size: 16px;
+            font-family: inherit;
+            resize: vertical;
+            transition: border-color 0.3s ease;
+        }
+
+        #intakeText:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .button-section {
+            text-align: center;
+            margin: 30px 0;
+        }
+
+        #classifyBtn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 15px 40px;
+            font-size: 18px;
+            border-radius: 50px;
+            cursor: pointer;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            font-weight: 600;
+        }
+
+        #classifyBtn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(102, 126, 234, 0.4);
+        }
+
+        #classifyBtn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .examples-section {
+            margin: 40px 0;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 10px;
+        }
+
+        .examples-section h3 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.3em;
+        }
+
+        .example-buttons {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .example-btn {
+            background: white;
+            border: 2px solid #e1e5e9;
+            padding: 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: left;
+        }
+
+        .example-btn:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+            transform: translateY(-1px);
+        }
+
+        .example-title {
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 5px;
+        }
+
+        .example-preview {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.4;
+        }
+
+        .results-section {
+            margin-top: 30px;
+            padding: 25px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .results-section h3 {
+            color: #333;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+
+        .result-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 25px;
+        }
+
+        .result-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            border-left: 5px solid;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+
+        .result-card.case-type {
+            border-left-color: #667eea;
+        }
+
+        .result-card.urgency {
+            border-left-color: #28a745;
+        }
+
+        .result-card.status {
+            border-left-color: #ffc107;
+        }
+
+        .result-card h4 {
+            font-size: 1.1em;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .result-value {
+            font-size: 1.3em;
+            font-weight: 600;
+            color: #2c3e50;
+        }
+
+        .reasoning-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+        }
+
+        .reasoning-section h4 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 1.2em;
+        }
+
+        .reasoning-text {
+            color: #555;
+            line-height: 1.6;
+            font-size: 15px;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .urgency-high { color: #dc3545; }
+        .urgency-medium { color: #ffc107; }
+        .urgency-low { color: #28a745; }
+
+        .status-qualified { color: #28a745; }
+        .status-needs-info { color: #ffc107; }
+        .status-not-case { color: #dc3545; }
+
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 20px;
+            }
+            
+            .result-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .example-buttons {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>AI Legal Intake Classifier</h1>
+            <p>Intelligent case classification and triage system</p>
+        </div>
+
+        <div class="main-content">
+            <div class="input-section">
+                <h2>Client Intake Description</h2>
+                <textarea 
+                    id="intakeText" 
+                    placeholder="Enter the client's description of their situation here. For example: 'I was rear-ended at a red light last Tuesday. The other driver was texting and didn't brake in time. I've been having neck pain and my car is totaled. The insurance company is giving me the runaround...'"
+                ></textarea>
+            </div>
+
+            <div class="examples-section">
+                <h3>Sample Cases - Click to Try</h3>
+                <div class="example-buttons">
+                    <div class="example-btn" onclick="loadExample(0)">
+                        <div class="example-title">Car Accident Case</div>
+                        <div class="example-preview">Rear-end collision with injury and insurance issues...</div>
+                    </div>
+                    <div class="example-btn" onclick="loadExample(1)">
+                        <div class="example-title">Medical Malpractice</div>
+                        <div class="example-preview">Surgical complications and delayed diagnosis...</div>
+                    </div>
+                    <div class="example-btn" onclick="loadExample(2)">
+                        <div class="example-title">Workplace Injury</div>
+                        <div class="example-preview">Construction site accident with workers' comp denial...</div>
+                    </div>
+                    <div class="example-btn" onclick="loadExample(3)">
+                        <div class="example-title">Property Damage</div>
+                        <div class="example-preview">Neighbor's tree damaged home during storm...</div>
+                    </div>
+                    <div class="example-btn" onclick="loadExample(4)">
+                        <div class="example-title">Product Liability</div>
+                        <div class="example-preview">Defective appliance caused house fire...</div>
+                    </div>
+                    <div class="example-btn" onclick="loadExample(5)">
+                        <div class="example-title">Slip and Fall</div>
+                        <div class="example-preview">Grocery store accident on wet floor...</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="button-section">
+                <button id="classifyBtn" onclick="classifyIntake()">Classify Case</button>
+            </div>
+
+            <div class="loading" id="loadingDiv">
+                <div class="spinner"></div>
+                <p>Analyzing case details with AI...</p>
+            </div>
+
+            <div class="results-section" id="resultsSection">
+                <h3>Classification Results</h3>
+                <div class="result-grid">
+                    <div class="result-card case-type">
+                        <h4>Case Type</h4>
+                        <div class="result-value" id="caseType">-</div>
+                    </div>
+                    <div class="result-card urgency">
+                        <h4>Urgency Level</h4>
+                        <div class="result-value" id="urgencyLevel">-</div>
+                    </div>
+                    <div class="result-card status">
+                        <h4>Status Recommendation</h4>
+                        <div class="result-value" id="statusRec">-</div>
+                    </div>
+                </div>
+                <div class="reasoning-section">
+                    <h4>AI Reasoning</h4>
+                    <div class="reasoning-text" id="reasoning">-</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample intake examples
+        const examples = [
+            {
+                title: "Car Accident Case",
+                text: "I was rear-ended at a red light last Tuesday around 5 PM during rush hour. The other driver was clearly distracted - I could see him texting on his phone in my rearview mirror just before impact. He didn't brake at all and hit me going at least 25 mph. I've been having severe neck pain and headaches since the accident, and I had to go to the ER that night. My 2019 Honda Accord is completely totaled - the trunk is smashed in and the frame is bent. The other driver's insurance company called me but they're trying to lowball me on the settlement. They offered $12,000 for my car but it's worth at least $18,000. I also missed a week of work because of my injuries and I'm still in physical therapy. The police report clearly states the other driver was at fault. I have photos of the scene and witness contact information."
+            },
+            {
+                title: "Medical Malpractice",
+                text: "My 67-year-old mother went to St. Mary's Hospital in March complaining of severe abdominal pain. The ER doctor barely examined her and said it was just indigestion, gave her some antacids and sent her home. Three days later she collapsed at home and had to be rushed back to the hospital. Turns out she had a ruptured appendix that had turned into peritonitis - a life-threatening infection. She needed emergency surgery and was in the ICU for two weeks. The surgeon said if they had caught it during her first visit, it would have been a simple 30-minute outpatient procedure. Instead, she nearly died and now has permanent complications. She's been in and out of the hospital four times since then dealing with infections and scar tissue. The medical bills are over $200,000 and she's disabled now. Her quality of life is completely destroyed. I have all her medical records and the hospital's own internal notes show they should have done a CT scan during the first visit."
+            },
+            {
+                title: "Workplace Injury", 
+                text: "I work construction for Morrison Building Company. Last month I was working on a 3-story apartment complex when the scaffolding collapsed while I was on the second level. I fell about 15 feet and landed on concrete, breaking my left leg in two places and injuring my back. The scaffolding was obviously defective - several other workers had complained about it being wobbly earlier that week, but the foreman told us to keep using it. OSHA came out and cited the company for multiple safety violations. I've been out of work for 6 weeks now and the doctors say I might never be able to do construction work again. Workers' comp is only paying a fraction of my medical bills and they're denying my wage loss claim, saying I was being 'reckless.' That's complete nonsense - I was following all safety protocols. My family is struggling financially and we might lose our house. I have photos of the broken scaffolding and witness statements from my coworkers who saw what happened."
+            },
+            {
+                title: "Property Damage",
+                text: "During last month's storm, my neighbor's large oak tree fell over and crashed through my roof, destroying my kitchen and flooding my basement. The tree was obviously diseased and rotting - I had actually mentioned this to my neighbor Mr. Johnson several times over the past year, asking him to have it removed because I was worried about exactly this scenario. He kept saying he would 'get around to it' but never did anything. Now my house has $45,000 in damage according to the contractor's estimate. My homeowner's insurance is saying they won't cover it because it's my neighbor's responsibility, but his insurance company is claiming it was an 'act of God' and refusing to pay. Meanwhile, I can't use half my house and I'm having to stay in a hotel. I have photos showing how rotten the tree was at the base, and I have text messages where I warned my neighbor about the tree multiple times."
+            },
+            {
+                title: "Product Liability",
+                text: "Six months ago I bought a new KitchenMaster blender from Target for $150. Last Tuesday morning I was making my usual breakfast smoothie when the blender exploded without warning. The glass jar shattered and sent pieces flying everywhere, cutting my face and arms. One shard barely missed my eye. Even worse, the motor apparently overheated and caught fire, which spread to my kitchen cabinets before I could put it out with my fire extinguisher. The damage to my kitchen is about $8,000 and I needed 12 stitches on my face and arms. I've found online that there have been dozens of similar complaints about this exact model exploding, but the company never issued a recall. I still have all the pieces of the blender and photos of my injuries and the kitchen damage. The fire department's report confirms the blender was the cause of the fire. My medical bills are piling up and I'm worried about permanent scarring."
+            },
+            {
+                title: "Slip and Fall",
+                text: "I was grocery shopping at FreshMart last Friday when I slipped on a puddle of water near the produce section. I went down hard on my right side and immediately felt a sharp pain in my hip and wrist. Turns out I fractured my wrist and have a severe hip contusion. The store manager came over but didn't seem very concerned - he just had someone mop up the water and asked if I was 'okay to drive home.' There were no warning signs or wet floor cones anywhere, and the water looked like it had been there for a while because it was dirty and had produce debris in it. Several customers saw what happened and one lady said she had almost slipped in the same spot earlier but caught herself. I got the contact information of two witnesses. The store's security cameras should have recorded everything. I've been to the doctor three times now and need physical therapy for my wrist. I missed two weeks of work as a dental hygienist because I can't use my right hand properly. The store hasn't reached out to me at all or offered to help with my medical bills."
+            }
+        ];
+
+        function loadExample(index) {
+            document.getElementById('intakeText').value = examples[index].text;
+        }
+
+        // Simulated AI classification function
+        function simulateAIClassification(text) {
+            // This simulates calling an AI API like OpenAI GPT
+            // In a real implementation, this would make an actual API call
+            
+            const classifications = {
+                // Car accident patterns
+                "car accident|rear-ended|collision|auto accident|vehicle|crashed|hit|traffic": {
+                    caseType: "Motor Vehicle Accident",
+                    urgency: "High",
+                    status: "Qualified Lead",
+                    reasoning: "Clear liability case with documented injury and property damage. Strong potential for recovery given police report and witness information."
+                },
+                
+                // Medical malpractice patterns
+                "medical|hospital|doctor|misdiagnosis|surgery|malpractice|physician": {
+                    caseType: "Medical Malpractice", 
+                    urgency: "High",
+                    status: "Qualified Lead",
+                    reasoning: "Serious medical negligence case with significant damages. Clear deviation from standard of care with documented harm and permanent complications."
+                },
+                
+                // Workplace injury patterns
+                "work|construction|workplace|job|scaffolding|OSHA|workers comp": {
+                    caseType: "Workers' Compensation / Workplace Injury",
+                    urgency: "High", 
+                    status: "Qualified Lead",
+                    reasoning: "Workplace injury with safety violations and comp denial. Potential third-party liability claim against equipment manufacturer or contractor."
+                },
+                
+                // Property damage patterns
+                "property|tree|roof|damage|neighbor|insurance|storm": {
+                    caseType: "Property Damage",
+                    urgency: "Medium",
+                    status: "Needs More Info",
+                    reasoning: "Property damage case with potential negligence claim. Need more documentation about prior notice and neighbor's knowledge of hazard."
+                },
+                
+                // Product liability patterns
+                "product|defective|exploded|recall|manufacturer|blender|appliance": {
+                    caseType: "Product Liability",
+                    urgency: "High",
+                    status: "Qualified Lead", 
+                    reasoning: "Strong product liability case with serious injury and property damage. Similar incidents suggest design defect. Good potential for class action."
+                },
+                
+                // Slip and fall patterns
+                "slip|fall|store|grocery|wet|floor|premises": {
+                    caseType: "Premises Liability / Slip and Fall",
+                    urgency: "Medium",
+                    status: "Qualified Lead",
+                    reasoning: "Premises liability case with clear injury and witnesses. Store's failure to warn or clean up hazard shows negligence. Good recovery potential."
+                }
+            };
+            
+            // Simple pattern matching (in reality, this would be sophisticated AI analysis)
+            const lowerText = text.toLowerCase();
+            
+            for (const [pattern, result] of Object.entries(classifications)) {
+                const keywords = pattern.split('|');
+                if (keywords.some(keyword => lowerText.includes(keyword))) {
+                    return result;
+                }
+            }
+            
+            // Default classification
+            return {
+                caseType: "General Inquiry",
+                urgency: "Low", 
+                status: "Needs More Info",
+                reasoning: "Case type unclear from initial description. Additional information needed to properly assess legal merit and potential for recovery."
+            };
+        }
+
+        async function classifyIntake() {
+            const text = document.getElementById('intakeText').value.trim();
+            
+            if (!text) {
+                alert('Please enter an intake description first.');
+                return;
+            }
+            
+            // Show loading state
+            document.getElementById('classifyBtn').disabled = true;
+            document.getElementById('loadingDiv').style.display = 'block';
+            document.getElementById('resultsSection').style.display = 'none';
+            
+            // Simulate API delay
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // Get classification results
+            const results = simulateAIClassification(text);
+            
+            // Update UI with results
+            document.getElementById('caseType').textContent = results.caseType;
+            document.getElementById('urgencyLevel').textContent = results.urgency;
+            document.getElementById('statusRec').textContent = results.status;
+            document.getElementById('reasoning').textContent = results.reasoning;
+            
+            // Add styling based on results
+            const urgencyEl = document.getElementById('urgencyLevel');
+            urgencyEl.className = 'result-value urgency-' + results.urgency.toLowerCase();
+            
+            const statusEl = document.getElementById('statusRec');
+            statusEl.className = 'result-value status-' + results.status.toLowerCase().replace(/\s+/g, '-');
+            
+            // Hide loading, show results
+            document.getElementById('loadingDiv').style.display = 'none';
+            document.getElementById('resultsSection').style.display = 'block';
+            document.getElementById('classifyBtn').disabled = false;
+            
+            // Scroll to results
+            document.getElementById('resultsSection').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // Load first example on page load
+        window.onload = function() {
+            loadExample(0);
+        };
+    </script>
+</body>
+</html>

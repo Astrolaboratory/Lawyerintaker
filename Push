@@ -1,0 +1,3 @@
+git clone https://github.com/Almas-Ali/fake-git-history.git
+cd fake-git-history
+pip install .
